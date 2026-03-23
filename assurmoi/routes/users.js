@@ -1,25 +1,26 @@
 const express = require('express')
 const router = express.Router()
 const { validateUsername} = require('../middlewares/users')
-
+const { getAllUsers,getUser,createUser,updateUser,deleteUser} = require('../services/users')
 
 router.post('/',validateUsername,(req, res)=> {
-        const result = validationResult(req)
-        if (!result.isEmpty()){
-            res.status(400).json({
-                message: "missing username"
-            })
-        }
-        const user = req.body
-        res.status(201).json({
-            user: user 
-        })
+        createUser
     })
 
 router.get('/:id',(req,res, next)=>{
-        res.status(200).json ({
-            user: req.params.id
-        })
+        getUser
+    })
+
+router.get('/',(req,res, next)=>{
+        getAllUsers
+    })
+
+router.delete('/:id',(req,res, next)=>{
+        deleteUser
+    })
+
+router.put('/:id',(req,res, next)=>{
+        updateUser
     })
 
 module.exports = router
