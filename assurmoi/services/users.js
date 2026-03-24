@@ -4,7 +4,9 @@ const getAllUsers = async (req,res)=>{
     if (req.query?.search){
         queryParam ={
             where: {
-
+                firstname: {
+                    [Op.like]:`%${req.query.search}%`
+                }
             }
         }
     }
