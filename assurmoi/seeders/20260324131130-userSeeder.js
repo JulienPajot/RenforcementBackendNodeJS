@@ -10,8 +10,6 @@ module.exports = {
         firstname: 'Admin',
         lastname: 'Root',
         email: 'admin@example.com',
-        createdAt: new Date(),
-        updatedAt: new Date()
       },
       {
         username: 'jdupont',
@@ -19,8 +17,6 @@ module.exports = {
         firstname: 'Jean',
         lastname: 'Dupont',
         email: 'jean.dupont@example.com',
-        createdAt: new Date(),
-        updatedAt: new Date()
       },
       {
         username: 'mmartin',
@@ -28,8 +24,6 @@ module.exports = {
         firstname: 'Marie',
         lastname: 'Martin',
         email: 'marie.martin@example.com',
-        createdAt: new Date(),
-        updatedAt: new Date()
       }
     ], {});
   },
