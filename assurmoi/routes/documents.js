@@ -1,9 +1,11 @@
 const express = require("express");
 const router = express.Router();
 
-router.post("/documents");
-router.get("/documents/:id");
-router.patch("/documents/:id/validate");
-router.delete("/documents/:id");
+const { getDocumentById,createDocument,updateDocument,deleteDocument} = require('../services/documents')
+
+router.post("/documents",createDocument);
+router.get("/documents/:id",getDocumentById);
+router.patch("/documents/:id/validate",updateDocument);
+router.delete("/documents/:id",deleteDocument);
 
 module.exports = router;
