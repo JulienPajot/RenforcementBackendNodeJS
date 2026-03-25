@@ -1,11 +1,12 @@
 const express = require("express");
 const router = express.Router();
 
+const { getAllRequests,getRequest,createRequest,updateRequest,deleteRequest} = require('../services/request')
 
-router.post("/requests");
-router.get("/requests");
-router.get("/requests/:id");
-router.patch("/requests/:id/status");
-router.delete("/requests/:id");
+router.post("/requests",createRequest);
+router.get("/requests",getAllRequests);
+router.get("/requests/:id",getRequest);
+router.patch("/requests/:id/status",updateRequest);
+router.delete("/requests/:id",deleteRequest);
 
 module.exports = router;
