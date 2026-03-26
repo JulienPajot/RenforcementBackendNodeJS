@@ -61,16 +61,15 @@ const createUser = async (req,res)=>{
 const updateUser = async(req,res)=>{
     const transaction = await dbInstance.transaction()
     try{
-        const {username, firstname,lastname,email,password} =req.body
+        const {username, firstname,lastname,email} =req.body
         const user_id = req.params.id
         const user = await User.update({
             username,
             firstname,
             lastname,
-            email,
-            password
+            email
         },{
-            where: (id),
+            where: ({ id: user_id}),
             transaction
         })
         transaction.commit()
@@ -120,10 +119,39 @@ const deleteUser = async (req, res) => {
   }
 };
 
+const desactivateUser = async (req, res)=> {
+    const transaction = await dbInstance.transaction();
+    try {
+        const user_id = req.params.id;
+
+        const user = await User.update({
+            active: false
+        },  
+        {
+            where: { id: user_id },
+            transaction
+        });
+
+        await transaction.commit();
+        return res.status(200).json({
+            message: "Successfully deactivated",
+            user
+        });
+    } catch (error) {
+        await transaction.rollback();
+        return res.status(400).json({
+            message: "Error on user deactivation",
+            stacktrace: error.errors
+        });
+    }
+ 
+}
+
 module.exports = {
     getAllUsers,
     getUser,
     createUser,
     updateUser,
-    deleteUser
+    deleteUser,
+    desactivateUser
 }

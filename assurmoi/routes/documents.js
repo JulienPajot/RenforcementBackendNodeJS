@@ -1,11 +1,12 @@
 const express = require("express");
 const router = express.Router();
+const { validationAuthentification} = require('../middlewares/auth')
 
 const { getDocumentById,createDocument,updateDocument,deleteDocument} = require('../services/documents')
 
-router.post("/",createDocument);
-router.get("/:id",getDocumentById);
-router.patch("/:id/validate",updateDocument);
-router.delete("/:id",deleteDocument);
+router.post("/",validationAuthentification,createDocument);
+router.get("/:id",validationAuthentification,getDocumentById);
+router.patch("/:id/validate",validationAuthentification,updateDocument);
+router.delete("/:id",validationAuthentification,deleteDocument);
 
 module.exports = router;

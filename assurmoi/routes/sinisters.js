@@ -1,16 +1,17 @@
 const express = require("express");
 const router = express.Router();
 const { getAllSinisters,getSinisterById,createSinister,updateSinister,deleteSinister,validateSinister} = require('../services/sinister')
+const { validationAuthentification} = require('../middlewares/auth')
 
-router.post("/",createSinister);
+router.post("/",validationAuthentification,createSinister);
 
-router.get("/",getAllSinisters);
-router.get("/:id",getSinisterById);
+router.get("/",validationAuthentification,getAllSinisters);
+router.get("/:id",validationAuthentification,getSinisterById);
 
-router.patch("/:id",updateSinister);
+router.patch("/:id",validationAuthentification,updateSinister);
 
-router.patch("/:id/validate",validateSinister);
+router.patch("/:id/validate",validationAuthentification,validateSinister);
 
-router.delete("/:id",deleteSinister);
+router.delete("/:id",validationAuthentification,deleteSinister);
 
 module.exports = router;
