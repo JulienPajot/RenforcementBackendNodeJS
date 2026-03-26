@@ -1,5 +1,3 @@
-const {Request,dbInstance} = require('../models')
-
 const { Request, Sinister, Document, dbInstance } = require('../models')
 
 const getAllRequests = async (req, res) => {
