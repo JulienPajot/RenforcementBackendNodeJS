@@ -2,25 +2,27 @@
 
 /** @type {import('sequelize-cli').Migration} */
 module.exports = {
+  
   async up (queryInterface, Sequelize) {
+    const hashedPassword = await bcrypt.hash('password123',parseInt(process.env.ENCRYPT_SALT))
     await queryInterface.bulkInsert('Users', [
       {
         username: 'admin',
-        password: 'admin123',
+        password: hashedPassword,
         firstname: 'Admin',
         lastname: 'Root',
         email: 'admin@example.com',
       },
       {
         username: 'jdupont',
-        password: 'password123',
+        password: hashedPassword,
         firstname: 'Jean',
         lastname: 'Dupont',
         email: 'jean.dupont@example.com',
       },
       {
         username: 'mmartin',
-        password: 'password123',
+        password: hashedPassword,
         firstname: 'Marie',
         lastname: 'Martin',
         email: 'marie.martin@example.com',
