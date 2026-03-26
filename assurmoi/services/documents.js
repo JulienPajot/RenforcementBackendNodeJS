@@ -45,7 +45,7 @@ const updateDocument = async(req,res)=>{
             path,
             validated
         },{
-            where: (id),
+            where: { id: document_id },
             transaction
         })
         transaction.commit()
@@ -78,12 +78,12 @@ const deleteDocument = async (req, res) => {
 
     if (!deleted) {
       return res.status(404).json({
-        message: "User not found"
+        message: "Document not found"
       });
     }
 
     return res.status(200).json({
-      message: "User successfully deleted"
+      message: "Document successfully deleted"
     });
 
   } catch (err) {
