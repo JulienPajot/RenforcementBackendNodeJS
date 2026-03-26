@@ -5,6 +5,11 @@ module.exports = (sequelize) => {
     static associate(models) {
       User.hasMany(models.History, { foreignKey: 'user_id', as: 'histories' });
     }
+
+    clean() {
+      const { password, role,token,refresh_token, ...rest } = this.dataValues;
+      return rest;
+    }
   }
 
   User.init(

@@ -1,4 +1,7 @@
 const {User,dbInstance} = require('../models')
+const bcrypt = require('bcrypt')
+require('dotenv').config()
+
 const getAllUsers = async (req,res)=>{
     let queryParam = {}
     if (req.query?.search){
@@ -30,23 +33,26 @@ const createUser = async (req,res)=>{
     const transaction = await dbInstance.transaction()
     try{
         const {username, firstname,lastname,email,password} =req.body
+        const hashedPassword = await bcrypt.hash(password,parseInt(process.env.ENCRYPT_SALT))
         const user = await User.create({
             username,
             firstname,
             lastname,
             email,
-            password
+            password: hashedPassword
         },{transaction})
+
         transaction.commit()
         return res.status(201).json({
-            user 
+            user: user.clean()
         })
     }
     catch(err){
         transaction.rollback();
+        console.log(err.errors)
         return res.status(400).json({
-                message: "missing username",
-                stacktrace: err.errors
+                message: "User not created",
+                stacktrace: err.errors,
             });
     }
         

@@ -1,7 +1,10 @@
 const express = require("express");
 const router = express.Router();
 
-router.post("/auth/login");
-router.post("/auth/refresh");
+const { login,logout} = require('../services/auth')
+const { validationAuthentification} = require('../middlewares/auth')
 
-module.exports = router;
+router.post('/login',login)
+router.post('/logout', validationAuthentification, logout);
+
+module.exports =router
