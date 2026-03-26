@@ -1,19 +1,23 @@
 const userRoutes = require('./users')
-const authRoutes = require('./auth')
 const sinisterRoutes = require('./sinisters')
 const documentRoutes = require('./documents')
 const requestRoutes = require('./requests')
-const workflowRoutes = require('./workflow')
+const historiesRoutes = require('./histories')
+const workflowRoutes = require('./workflows')
+const authRoutes = require('./auth')
+
+
 
 function initRoutes(app){
 
     app.use('/user',userRoutes)
-    app.use('/auth', authRoutes)
-    app.use('/sinister', sinisterRoutes)
-    app.use('/document', documentRoutes)
-    app.use('/request', requestRoutes)
-    app.use('/workflow', workflowRoutes)
-
+    app.use('/sinisters', sinisterRoutes)
+    app.use('/documents', documentRoutes)
+    app.use('/requests', requestRoutes)
+    app.use('/histories', historiesRoutes)
+    app.use('/workflows', workflowRoutes)
+    app.use('/auth',authRoutes)
+    
     app.get ('/',(req, res,next)=> {
         console.log('middleware Homepage')
         next()
