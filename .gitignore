@@ -4,4 +4,6 @@ assurmoi/node_modules/*
 assurmoi/.env
 assurmobile/node_modules/*
 assurmobile/.env
+.assurmobile/.expo/*
+assurmobile/.npm/*
 assurmobile/.expo/*
