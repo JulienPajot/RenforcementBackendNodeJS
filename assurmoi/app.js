@@ -10,7 +10,7 @@
     app.use(express.json())
     app.use(cors({
         credentials:true,
-        origin: ['http://exemple.com','*']
+        origin: ['http://localhost:8081','*']
     }))
 
     initRoutes(app)

@@ -2,3 +2,6 @@ db-data/*
 .npm/*
 assurmoi/node_modules/*
 assurmoi/.env
+assurmobile/node_modules/*
+assurmobile/.env
+assurmobile/.expo/*
