@@ -7,6 +7,7 @@ module.exports = (sequelize) => {
       Sinister.belongsTo(models.Document, { foreignKey: 'vehicule_registration_certificate', as: 'registrationDocument' });
       Sinister.belongsTo(models.Document, { foreignKey: 'insurance_certificate', as: 'insuranceDocument' });
       Sinister.hasMany(models.Request, { foreignKey: 'sinister_id', as: 'requests' });
+      Sinister.belongsTo(models.User, { foreignKey: 'user_id', as: 'user' });
     }
   }
 
@@ -72,7 +73,13 @@ module.exports = (sequelize) => {
         type: DataTypes.BOOLEAN,
         defaultValue: false,
       },
+      user_id: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      references: { model: 'user', key: 'id' },
+      },
     },
+    
     {
       sequelize,
       modelName: 'Sinister',

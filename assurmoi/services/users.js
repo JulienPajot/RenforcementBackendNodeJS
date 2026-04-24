@@ -145,7 +145,15 @@ const desactivateUser = async (req, res)=> {
         });
     }
  
+    
 }
+
+const getMe = (req, res) => {
+        return res.status(200).json({
+        user: req.user.clean()
+    })
+}
+
 
 module.exports = {
     getAllUsers,
@@ -153,5 +161,6 @@ module.exports = {
     createUser,
     updateUser,
     deleteUser,
-    desactivateUser
+    desactivateUser,
+    getMe
 }

@@ -1,9 +1,19 @@
 const { Sinister, Request } = require("../models");
+
 const getAllSinisters = async (req, res) => {
   try {
-    const sinisters = await Sinister.findAll();
+    const sinisters = await Sinister.findAll({
+      where: { user_id: req.user.id },
+      include: [
+        {
+          model: Request,
+          as: "requests",
+          attributes: ["id", "status"],
+        },
+      ],
+    });
 
-    res.json(sinisters);
+    res.json({ sinisters });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Erreur récupération sinistres" });
@@ -12,13 +22,22 @@ const getAllSinisters = async (req, res) => {
 
 const getSinisterById = async (req, res) => {
   try {
-    const sinister = await Sinister.findByPk(req.params.id);
+    const sinister = await Sinister.findOne({
+      where: { id: req.params.id, user_id: req.user.id },
+      include: [
+        {
+          model: Request,
+          as: "requests",
+          attributes: ["id", "status"],
+        },
+      ],
+    });
 
     if (!sinister) {
       return res.status(404).json({ message: "Sinistre introuvable" });
     }
 
-    res.json(sinister);
+    res.json({ sinister });
   } catch (error) {
     res.status(500).json({ message: "Erreur récupération sinistre" });
   }
@@ -27,7 +46,6 @@ const getSinisterById = async (req, res) => {
 const createSinister = async (req, res) => {
   try {
     const data = req.body;
-    const userId = req.user?.id || null;
 
     const sinister = await Sinister.create({
       plate: data.plate,
@@ -45,9 +63,10 @@ const createSinister = async (req, res) => {
       vehicule_registration_certificate: data.vehicule_registration_certificate ?? null,
       insurance_certificate: data.insurance_certificate ?? null,
       validated: false,
+      user_id: req.user.id,
     });
 
-    res.status(201).json(sinister);
+    res.status(201).json({ sinister });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Erreur création sinistre" });
@@ -56,15 +75,15 @@ const createSinister = async (req, res) => {
 
 const updateSinister = async (req, res) => {
   try {
-    const { id } = req.params;
-    const data = req.body;
-    const userId = req.user?.id || null;
+    const sinister = await Sinister.findOne({
+      where: { id: req.params.id, user_id: req.user.id },
+    });
 
-    const sinister = await Sinister.findByPk(id);
     if (!sinister) {
       return res.status(404).json({ message: "Sinistre introuvable" });
     }
 
+    const data = req.body;
     await sinister.update({
       ...data,
       ...(data.call_datetime && { call_datetime: new Date(data.call_datetime) }),
@@ -76,7 +95,7 @@ const updateSinister = async (req, res) => {
       }),
     });
 
-    res.json(sinister);
+    res.json({ sinister });
   } catch (error) {
     res.status(500).json({ message: "Erreur update" });
   }
@@ -84,16 +103,15 @@ const updateSinister = async (req, res) => {
 
 const validateSinister = async (req, res) => {
   try {
-    const { id } = req.params;
-    const userId = req.user?.id || null;
+    const sinister = await Sinister.findOne({
+      where: { id: req.params.id, user_id: req.user.id },
+    });
 
-    const sinister = await Sinister.findByPk(id);
     if (!sinister) {
       return res.status(404).json({ message: "Sinistre introuvable" });
     }
 
     await sinister.update({ validated: true });
-
 
     res.json({ sinister });
   } catch (error) {
@@ -103,10 +121,10 @@ const validateSinister = async (req, res) => {
 
 const deleteSinister = async (req, res) => {
   try {
-    const { id } = req.params;
-    const userId = req.user?.id || null;
+    const sinister = await Sinister.findOne({
+      where: { id: req.params.id, user_id: req.user.id },
+    });
 
-    const sinister = await Sinister.findByPk(id);
     if (!sinister) {
       return res.status(404).json({ message: "Sinistre introuvable" });
     }

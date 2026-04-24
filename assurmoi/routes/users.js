@@ -3,9 +3,10 @@ const router = express.Router()
 const { validateUsername} = require('../middlewares/users')
 const { validationAuthentification} = require('../middlewares/auth')
 
-const { getAllUsers,getUser,createUser,updateUser,deleteUser,desactivateUser} = require('../services/users')
+const { getAllUsers,getUser,createUser,updateUser,deleteUser,desactivateUser,getMe} = require('../services/users')
 
 router.post('/',validationAuthentification,validateUsername,createUser)
+router.get('/me', validationAuthentification, getMe)
 router.get('/:id',validationAuthentification,getUser)
 router.get('/',validationAuthentification,getAllUsers)
 router.delete('/:id',validationAuthentification,deleteUser)

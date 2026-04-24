@@ -32,7 +32,7 @@ async function sendMail(to, subject, text, html = null) {
 
 async function sendLoginAlertEmail(user) {
     try {
-        const mailStatus = await mailer.sendMail(
+        const mailStatus = await sendMail(
             user.email,
             'New login to your account',
             `A new login to your account was detected at ${new Date().toLocaleString()}. If this was not you, please change your password immediately.`
