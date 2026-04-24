@@ -7,7 +7,7 @@ module.exports = (sequelize) => {
     }
 
     clean() {
-      const { password, role,token,refresh_token, ...rest } = this.dataValues;
+      const { password,token,refresh_token, ...rest } = this.dataValues;
       return rest;
     }
   }
@@ -62,6 +62,14 @@ module.exports = (sequelize) => {
         type: DataTypes.BOOLEAN,
         defaultValue: true,
       },
+      reset_token: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+      },
+      reset_token_exp: {
+      type: DataTypes.DATE,
+      allowNull: true,
+    },
     },
     {
       sequelize,

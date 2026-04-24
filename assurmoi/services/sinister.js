@@ -1,4 +1,4 @@
-const { Sinister, Request } = require("../models");
+const { Sinister, Request, Document} = require("../models");
 
 const getAllSinisters = async (req, res) => {
   try {
@@ -137,11 +137,59 @@ const deleteSinister = async (req, res) => {
   }
 };
 
+
+const LABEL_TO_FIELD = {
+  CNI:          'cni_driver',
+  REGISTRATION: 'vehicule_registration_certificate',
+  INSURANCE:    'insurance_certificate',
+};
+
+const LABEL_TO_TYPE = {
+  CNI:          'CNI',
+  REGISTRATION: 'REGISTRATION',
+  INSURANCE:    'INSURANCE',
+};
+
+const uploadSinisterDocument = async (req, res) => {
+  try {
+    const sinister_id = req.params.id;
+    const { label }   = req.body;
+    const file        = req.file;
+
+    if (!file) {
+      return res.status(400).json({ message: 'Aucun fichier reçu' });
+    }
+
+    if (!LABEL_TO_FIELD[label]) {
+      return res.status(400).json({ message: `Libellé invalide : ${label}` });
+    }
+
+    const sinister = await Sinister.findByPk(sinister_id);
+    if (!sinister) {
+      return res.status(404).json({ message: 'Sinistre introuvable' });
+    }
+    const document = await Document.create({
+      type:      LABEL_TO_TYPE[label],
+      path:      file.path,
+      validated: false,
+    });
+    await sinister.update({ [LABEL_TO_FIELD[label]]: document.id });
+
+    return res.status(201).json({
+      message:  'Document enregistré',
+      document,
+    });
+
+  } catch (err) {
+    return res.status(500).json({ message: err.message });
+  }
+};
 module.exports = {
   getAllSinisters,
   getSinisterById,
   createSinister,
   updateSinister,
   validateSinister,
+  uploadSinisterDocument,
   deleteSinister,
 };

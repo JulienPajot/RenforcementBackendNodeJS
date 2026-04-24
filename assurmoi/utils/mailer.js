@@ -10,7 +10,6 @@ const transporter = createTransport({
     }
 })
 
-// Fonction asynchrone pour envoyer un mail
 async function sendMail(to, subject, text, html = null) {
     try {
         const mailOptions = {

@@ -34,7 +34,6 @@ const createDocument = async (req,res)=>{
         
 }
 
-
 const updateDocument = async(req,res)=>{
     const transaction = await dbInstance.transaction()
     try{

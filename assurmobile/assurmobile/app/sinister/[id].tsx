@@ -1,15 +1,18 @@
-// app/sinister/[id].tsx
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  ActivityIndicator,
-  TouchableOpacity,
-} from "react-native";
-import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
+import { ScrollView, View, StyleSheet, Platform } from "react-native";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import * as DocumentPicker from "expo-document-picker";
 import fetchData from "@/hooks/fetchData";
+
+import {
+  Text,
+  Card,
+  Button,
+  Chip,
+  Divider,
+  ActivityIndicator,
+  List,
+} from "react-native-paper";
 
 type Request = {
   id: number;
@@ -31,42 +34,162 @@ type Sinister = {
   requests: Request[];
 };
 
-const STATUS_LABELS: Record<string, { label: string; color: string; bg: string }> = {
-  PENDING:           { label: "En attente",         color: "#854F0B", bg: "#FAEEDA" },
-  IN_PROGRESS:       { label: "En cours",            color: "#185FA5", bg: "#E6F1FB" },
-  EXPERTISE_PLANNED: { label: "Expertise planifiée", color: "#3B6D11", bg: "#EAF3DE" },
-  EXPERTISE_DONE:    { label: "Expertise faite",     color: "#3B6D11", bg: "#EAF3DE" },
-  REPAIR_PLANNED:    { label: "Réparation planif.",  color: "#534AB7", bg: "#EEEDFE" },
-  REPAIR_DONE:       { label: "Réparation faite",    color: "#534AB7", bg: "#EEEDFE" },
-  CLOSED:            { label: "Clôturé",             color: "#5F5E5A", bg: "#F1EFE8" },
+const STATUS_LABELS: Record<
+  string,
+  { label: string; color: string; bg: string }
+> = {
+  PENDING: { label: "En attente", color: "#854F0B", bg: "#FAEEDA" },
+  IN_PROGRESS: { label: "En cours", color: "#185FA5", bg: "#E6F1FB" },
+  EXPERTISE_PLANNED: {
+    label: "Expertise planifiée",
+    color: "#3B6D11",
+    bg: "#EAF3DE",
+  },
+  EXPERTISE_DONE: {
+    label: "Expertise faite",
+    color: "#3B6D11",
+    bg: "#EAF3DE",
+  },
+  REPAIR_PLANNED: {
+    label: "Réparation planifiée",
+    color: "#534AB7",
+    bg: "#EEEDFE",
+  },
+  REPAIR_DONE: {
+    label: "Réparation faite",
+    color: "#534AB7",
+    bg: "#EEEDFE",
+  },
+  CLOSED: { label: "Clôturé", color: "#5F5E5A", bg: "#F1EFE8" },
 };
 
 export default function SinisterDetail() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
+
   const [sinister, setSinister] = useState<Sinister | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const [file, setFile] =
+    useState<DocumentPicker.DocumentPickerAsset | null>(null);
+
+  const [uploading, setUploading] = useState(false);
+  const [uploadMsg, setUploadMsg] =
+    useState<{ text: string; ok: boolean } | null>(null);
+
+  const [label, setLabel] = useState("CNI");
+
   const formatDate = (iso: string | null) => {
     if (!iso) return "—";
+
     return new Date(iso).toLocaleDateString("fr-FR", {
-      day: "2-digit", month: "long", year: "numeric",
+      day: "2-digit",
+      month: "long",
+      year: "numeric",
     });
   };
 
+  const reload = async () => {
+    const data = await fetchData(`sinisters/${id}`, "GET", undefined, true);
+    setSinister(data?.sinister ?? null);
+  };
+
   useEffect(() => {
-    const fetch = async () => {
-      const data = await fetchData(`sinisters/${id}`, "GET", undefined, true);
-      setSinister(data?.sinister ?? null);
+    const init = async () => {
+      await reload();
       setLoading(false);
     };
-    fetch();
+
+    init();
   }, [id]);
+
+  const pickDocument = async () => {
+    setUploadMsg(null);
+
+    if (Platform.OS === "web") {
+      const input = document.createElement("input");
+      input.type = "file";
+      input.accept = "application/pdf,image/jpeg,image/png";
+
+      input.onchange = (e: any) => {
+        const f = e.target.files?.[0];
+
+        if (f) {
+          setFile({
+            uri: URL.createObjectURL(f),
+            name: f.name,
+            size: f.size,
+            mimeType: f.type,
+            _webFile: f,
+          } as any);
+        }
+      };
+
+      input.click();
+    } else {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: ["application/pdf", "image/jpeg", "image/png"],
+        copyToCacheDirectory: true,
+      });
+
+      if (!result.canceled && result.assets?.[0]) {
+        setFile(result.assets[0]);
+      }
+    }
+  };
+
+  const sendDocument = async () => {
+    if (!file || !sinister) return;
+
+    setUploading(true);
+    setUploadMsg(null);
+
+    try {
+      const form = new FormData();
+
+      if (Platform.OS === "web") {
+        form.append("file", (file as any)._webFile);
+      } else {
+        form.append(
+          "file",
+          {
+            uri: file.uri,
+            name: file.name,
+            type: file.mimeType ?? "application/octet-stream",
+          } as any
+        );
+      }
+
+      form.append("sinister_id", String(sinister.id));
+      form.append("label", label);
+
+      const res = await fetchData(
+        `sinisters/${sinister.id}/documents`,
+        "POST",
+        form,
+        true
+      );
+
+      setUploadMsg({
+        text: res?.message ?? "Document envoyé",
+        ok: true,
+      });
+
+      setFile(null);
+    } catch (e: any) {
+      setUploadMsg({
+        text: e?.message ?? "Erreur lors de l'envoi",
+        ok: false,
+      });
+    } finally {
+      setUploading(false);
+    }
+  };
 
   if (loading) {
     return (
       <View style={styles.centered}>
-        <ActivityIndicator color="#185FA5" />
+        <ActivityIndicator animating color="#185FA5" />
       </View>
     );
   }
@@ -74,7 +197,7 @@ export default function SinisterDetail() {
   if (!sinister) {
     return (
       <View style={styles.centered}>
-        <Text style={styles.emptyText}>Sinistre introuvable</Text>
+        <Text>Sinistre introuvable</Text>
       </View>
     );
   }
@@ -82,186 +205,390 @@ export default function SinisterDetail() {
   const latestStatus = sinister.requests?.length
     ? sinister.requests[sinister.requests.length - 1].status
     : null;
-  const statusInfo = latestStatus ? STATUS_LABELS[latestStatus] : null;
+
+  const statusInfo = latestStatus
+    ? STATUS_LABELS[latestStatus]
+    : null;
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={styles.content}
+      showsVerticalScrollIndicator={false}
+    >
+      <Card style={styles.card}>
+        <Card.Content>
+          <View style={styles.topRow}>
+            <View>
+              <Text variant="titleMedium">
+                Sinistre #{sinister.id}
+              </Text>
 
-      <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-        <Text style={styles.backText}>← Retour</Text>
-      </TouchableOpacity>
+              <Text style={styles.plate}>
+                {sinister.plate ?? "—"}
+              </Text>
+            </View>
 
-      <View style={styles.headerCard}>
-        <View style={styles.headerTop}>
-          <View>
-            <Text style={styles.sinisterNumber}>Sinistre #{sinister.id}</Text>
-            <Text style={styles.plate}>{sinister.plate ?? "—"}</Text>
+            <Chip
+              compact
+              style={{
+                backgroundColor: sinister.validated
+                  ? "#EAF3DE"
+                  : "#F1EFE8",
+              }}
+              textStyle={{
+                color: sinister.validated
+                  ? "#3B6D11"
+                  : "#5F5E5A",
+              }}
+            >
+              {sinister.validated
+                ? "✓ Validé"
+                : "Non validé"}
+            </Chip>
           </View>
-          <View style={styles.validatedBadge}>
-            <Text style={styles.validatedText}>
-              {sinister.validated ? "✓ Validé" : "Non validé"}
-            </Text>
-          </View>
-        </View>
 
-        {statusInfo && (
-          <View style={[styles.statusBadge, { backgroundColor: statusInfo.bg }]}>
-            <Text style={[styles.statusText, { color: statusInfo.color }]}>
+          {statusInfo && (
+            <Chip
+              compact
+              style={{
+                backgroundColor: statusInfo.bg,
+                alignSelf: "flex-start",
+                marginTop: 14,
+              }}
+              textStyle={{ color: statusInfo.color }}
+            >
               {statusInfo.label}
-            </Text>
-          </View>
-        )}
-      </View>
+            </Chip>
+          )}
+        </Card.Content>
+      </Card>
 
-      <Text style={styles.sectionTitle}>Conducteur</Text>
-      <View style={styles.card}>
-        <Row label="Nom" value={`${sinister.driver_firstname} ${sinister.driver_lastname}`} />
-        <Divider />
-        <Row label="Assuré" value={sinister.driver_is_insured ? "Oui" : "Non"} />
-        <Divider />
-        <Row label="Responsabilité" value={sinister.driver_responsability ? "Oui" : "Non"} />
-        {sinister.driver_responsability && (
-          <>
-            <Divider />
-            <Row label="Part engagée" value={`${sinister.driver_engaged_responsability}%`} />
-          </>
-        )}
-      </View>
+      <SectionTitle title="Conducteur" />
 
-      <Text style={styles.sectionTitle}>Dates</Text>
-      <View style={styles.card}>
-        <Row label="Date du sinistre" value={formatDate(sinister.sinister_datetime)} />
-        <Divider />
-        <Row label="Date d'appel" value={formatDate(sinister.call_datetime)} />
-      </View>
+      <Card style={styles.card}>
+        <Card.Content>
+          <Row
+            label="Nom"
+            value={`${sinister.driver_firstname} ${sinister.driver_lastname}`}
+          />
+          <Divider />
+          <Row
+            label="Assuré"
+            value={sinister.driver_is_insured ? "Oui" : "Non"}
+          />
+          <Divider />
+          <Row
+            label="Responsabilité"
+            value={
+              sinister.driver_responsability ? "Oui" : "Non"
+            }
+          />
 
-      {sinister.context && (
+          {sinister.driver_responsability && (
+            <>
+              <Divider />
+              <Row
+                label="Part engagée"
+                value={`${sinister.driver_engaged_responsability}%`}
+              />
+            </>
+          )}
+        </Card.Content>
+      </Card>
+
+      <SectionTitle title="Dates" />
+
+      <Card style={styles.card}>
+        <Card.Content>
+          <Row
+            label="Date du sinistre"
+            value={formatDate(
+              sinister.sinister_datetime
+            )}
+          />
+          <Divider />
+          <Row
+            label="Date d'appel"
+            value={formatDate(
+              sinister.call_datetime
+            )}
+          />
+        </Card.Content>
+      </Card>
+
+      {!!sinister.context && (
         <>
-          <Text style={styles.sectionTitle}>Contexte</Text>
-          <View style={styles.card}>
-            <Text style={styles.contextText}>{sinister.context}</Text>
-          </View>
+          <SectionTitle title="Contexte" />
+
+          <Card style={styles.card}>
+            <Card.Content>
+              <Text style={{ lineHeight: 22, color: "#111111" }}>
+                {sinister.context}
+              </Text>
+            </Card.Content>
+          </Card>
         </>
       )}
 
-      <Text style={styles.sectionTitle}>Demandes ({sinister.requests?.length ?? 0})</Text>
+      <SectionTitle
+        title={`Demandes (${sinister.requests?.length ?? 0})`}
+      />
+
       {sinister.requests?.length === 0 ? (
-        <View style={styles.emptyCard}>
-          <Text style={styles.emptyText}>Aucune demande</Text>
-        </View>
+        <Card style={styles.card}>
+          <Card.Content>
+            <Text style={{ lineHeight: 22, color: "#111111" }}>Aucune demande</Text>
+          </Card.Content>
+        </Card>
       ) : (
-        sinister.requests?.map((req) => {
+        sinister.requests.map((req) => {
           const info = STATUS_LABELS[req.status];
+
           return (
-            <View key={req.id} style={styles.requestCard}>
-              <Text style={styles.requestId}>Demande #{req.id}</Text>
-              {info && (
-                <View style={[styles.statusBadge, { backgroundColor: info.bg }]}>
-                  <Text style={[styles.statusText, { color: info.color }]}>{info.label}</Text>
-                </View>
-              )}
-            </View>
+            <Card
+              key={req.id}
+              style={styles.requestCard}
+            >
+              <Card.Content style={styles.requestRow}>
+                <Text style={{ lineHeight: 22, color: "#111111" }}>
+                  Demande #{req.id}
+                </Text>
+
+                {info && (
+                  <Chip
+                    compact
+                    style={{
+                      backgroundColor: info.bg,
+                    }}
+                    textStyle={{
+                      color: info.color,
+                    }}
+                  >
+                    {info.label}
+                  </Chip>
+                )}
+              </Card.Content>
+            </Card>
           );
         })
       )}
+
+      <SectionTitle title="Dépôt de document" />
+
+      <Card style={styles.card}>
+        <Card.Content>
+          <Text style={styles.label}>
+            Libellé du document
+          </Text>
+
+          <View style={styles.chipsWrap}>
+            {[
+              {
+                value: "CNI",
+                label: "CNI conducteur",
+              },
+              {
+                value: "REGISTRATION",
+                label: "Carte grise",
+              },
+              {
+                value: "INSURANCE",
+                label:
+                  "Attestation assurance",
+              },
+            ].map((item) => (
+              <Chip
+                key={item.value}
+                selected={label === item.value}
+                onPress={() =>
+                  setLabel(item.value)
+                }
+                style={styles.docChip}
+                textStyle={{ color: "#FFFFFF" }}
+              >
+                {item.label}
+              </Chip>
+            ))}
+          </View>
+
+          <Button
+            mode="outlined"
+            icon="paperclip"
+            onPress={pickDocument}
+            textColor="#111111"
+            style={{ marginTop: 10 }}
+          >
+            {file
+              ? file.name
+              : "Sélectionner un fichier"}
+          </Button>
+
+          {file?.size && (
+            <Text style={styles.fileSize}>
+              {(file.size / 1048576).toFixed(1)} Mo
+            </Text>
+          )}
+
+          {uploadMsg && (
+            <Text
+              style={{
+                marginTop: 12,
+                color: uploadMsg.ok
+                  ? "#3B6D11"
+                  : "#A32D2D",
+              }}
+            >
+              {uploadMsg.text}
+            </Text>
+          )}
+
+          <Button
+            mode="contained"
+            onPress={sendDocument}
+            disabled={!file || uploading}
+            loading={uploading}
+            style={{ marginTop: 16 }}
+            buttonColor="#185FA5"
+            textColor="#FFFFFF"
+          >
+            Envoyer
+          </Button>
+        </Card.Content>
+      </Card>
     </ScrollView>
   );
 }
 
-const Row = ({ label, value }: { label: string; value: string }) => (
-  <View style={styles.row}>
-    <Text style={styles.rowLabel}>{label}</Text>
-    <Text style={styles.rowValue}>{value}</Text>
-  </View>
-);
+function SectionTitle({
+  title,
+}: {
+  title: string;
+}) {
+  return (
+    <Text style={styles.sectionTitle}>
+      {title}
+    </Text>
+  );
+}
 
-const Divider = () => <View style={styles.divider} />;
+function Row({
+  label,
+  value,
+}: {
+  label: string;
+  value: string;
+}) {
+  return (
+    <List.Item
+      title={label}
+      right={() => (
+        <Text style={styles.value}>
+          {value}
+        </Text>
+      )}
+      titleStyle={styles.rowLabel}
+      style={{ paddingHorizontal: 0 }}
+    />
+  );
+}
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#F5F5F0" },
-  content: { padding: 20, paddingBottom: 48 },
-  centered: { flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "#F5F5F0" },
-
-  backButton: { marginBottom: 16 },
-  backText: { fontSize: 14, color: "#185FA5", fontWeight: "500" },
-
-  headerCard: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 20,
-    borderWidth: 0.5,
-    borderColor: "#E0DED8",
-    padding: 20,
-    marginBottom: 24,
-    gap: 12,
+  container: {
+    flex: 1,
+    backgroundColor: "#F5F5F0",
   },
-  headerTop: {
+
+  content: {
+    padding: 20,
+    paddingBottom: 40,
+  },
+
+  centered: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#F5F5F0",
+  },
+
+  backBtn: {
+    alignSelf: "flex-start",
+    marginBottom: 12,
+    marginLeft: -8,
+  },
+
+  card: {
+    marginBottom: 16,
+    borderRadius: 20,
+    backgroundColor: "#FFFFFF",
+  },
+
+  requestCard: {
+    marginBottom: 10,
+    borderRadius: 18,
+    backgroundColor: "#FFFFFF",
+  },
+
+  topRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-start",
   },
-  sinisterNumber: { fontSize: 18, fontWeight: "500", color: "#111111", marginBottom: 4 },
-  plate: { fontSize: 22, fontWeight: "500", color: "#185FA5", letterSpacing: 1 },
-  validatedBadge: {
-    backgroundColor: "#EAF3DE",
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 20,
-  },
-  validatedText: { fontSize: 12, fontWeight: "500", color: "#3B6D11" },
 
-  statusBadge: { alignSelf: "flex-start", paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20 },
-  statusText: { fontSize: 12, fontWeight: "500" },
+  requestRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+
+  plate: {
+    marginTop: 4,
+    fontSize: 22,
+    fontWeight: "600",
+    color: "#185FA5",
+  },
 
   sectionTitle: {
     fontSize: 13,
-    fontWeight: "500",
     color: "#6B7280",
     marginBottom: 8,
-    marginTop: 4,
+    marginTop: 6,
     textTransform: "uppercase",
     letterSpacing: 0.5,
   },
-  card: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 16,
-    borderWidth: 0.5,
-    borderColor: "#E0DED8",
-    paddingHorizontal: 16,
-    marginBottom: 16,
-  },
-  row: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingVertical: 12,
-  },
-  rowLabel: { fontSize: 14, color: "#6B7280" },
-  rowValue: { fontSize: 14, fontWeight: "500", color: "#111111" },
-  divider: { height: 0.5, backgroundColor: "#E0DED8" },
 
-  contextText: { fontSize: 14, color: "#374151", lineHeight: 22, paddingVertical: 14 },
+  rowLabel: {
+    color: "#6B7280",
+    fontSize: 14,
+  },
 
-  requestCard: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 16,
-    borderWidth: 0.5,
-    borderColor: "#E0DED8",
-    padding: 14,
+  value: {
+    fontWeight: "600",
+    color: "#111111",
+    marginTop: 6,
+  },
+
+  label: {
+    fontSize: 13,
+    color: "#6B7280",
     marginBottom: 10,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
+    textTransform: "uppercase",
   },
-  requestId: { fontSize: 14, fontWeight: "500", color: "#111111" },
 
-  emptyCard: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 16,
-    borderWidth: 0.5,
-    borderColor: "#E0DED8",
-    padding: 20,
-    alignItems: "center",
-    marginBottom: 16,
+  chipsWrap: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
   },
-  emptyText: { fontSize: 14, color: "#6B7280" },
+
+  docChip: {
+    marginBottom: 8,
+    color: "#111111",
+  },
+
+  fileSize: {
+    marginTop: 8,
+    fontSize: 12,
+    color: "#6B7280",
+  },
 });
